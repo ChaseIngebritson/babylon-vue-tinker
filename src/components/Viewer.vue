@@ -1,52 +1,59 @@
 <template>
   <div class="viewer">
-    <canvas id="renderCanvas" touch-action="none" />
+    <canvas ref="canvas" touch-action="none" />
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
 
-import { Engine } from '@babylonjs/core/Engines/engine'
-import { Scene } from '@babylonjs/core/scene'
-import { Vector3 } from '@babylonjs/core/Maths/math'
-import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera'
-import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
+import {
+  Engine,
+  Scene,
+  Vector3,
+  FreeCamera,
+  HemisphericLight,
+  AssetsManager,
+  MeshAssetTask,
+  MeshBuilder,
+  StandardMaterial,
+  Texture,
+  ActionManager,
+  ExecuteCodeAction,
+  ActionEvent,
+  CannonJSPlugin,
+  PhysicsImpostor,
+  Mesh
+} from '@babylonjs/core'
 import '@babylonjs/core/Loading/loadingScreen'
-import { AssetsManager, MeshAssetTask } from '@babylonjs/core/Misc/assetsManager'
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder'
 import '@babylonjs/core/Collisions/collisionCoordinator'
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial'
-import { ActionManager, ExecuteCodeAction, ActionEvent } from '@babylonjs/core/Actions'
 
 // import '@babylonjs/loaders'
 import { SkyMaterial } from '@babylonjs/materials/sky/skyMaterial'
 
 @Component
 export default class Viewer extends Vue {
-  private canvas!: HTMLCanvasElement
   private engine!: Engine
   private scene!: Scene
   private camera!: FreeCamera
   private assetsManager!: AssetsManager
 
   private async mounted () {
-    this.canvas = document.getElementById('renderCanvas') as HTMLCanvasElement
-
-    this.engine = new Engine(this.canvas)
+    const canvas = this.$refs.canvas as HTMLCanvasElement
+    this.engine = new Engine(canvas)
 
     this.scene = new Scene(this.engine)
-    this.scene.gravity = new Vector3(0, -1, 0)
-    this.scene.collisionsEnabled = true
 
     this.camera = new FreeCamera('camera', new Vector3(0, 2, 0), this.scene)
-    this.camera.attachControl(this.canvas, true)
+    this.camera.attachControl(canvas, true)
     this.camera.ellipsoid = new Vector3(1, 1, 1)
-    this.camera.checkCollisions = true
-    this.camera.applyGravity = true
 
     const light = new HemisphericLight('hemiLight', new Vector3(0, 1, 0), this.scene)
     light.intensity = 0.7
+
+    const gravityVector = new Vector3(0, -9.81, 0)
+    const physicsPlugin = new CannonJSPlugin()
+    this.scene.enablePhysics(gravityVector, physicsPlugin)
 
     // this.assetsManager = new AssetsManager(this.scene)
     //
@@ -64,18 +71,20 @@ export default class Viewer extends Vue {
     skyMaterial.backFaceCulling = false
     skybox.material = skyMaterial
 
-    const ground = MeshBuilder.CreateGround('ground', { width: 100, height: 100, subdivisions: 10 }, this.scene)
-    ground.material = new StandardMaterial('groundMat', this.scene)
-    ground.material.backFaceCulling = false
-    ground.checkCollisions = true
+    const ground = MeshBuilder.CreateBox('ground', { width: 100, depth: 100, height: 1 }, this.scene)
+    // ground.material = new StandardMaterial('groundMat', this.scene)
+    // ground.material.backFaceCulling = false
+    // ground.checkCollisions = true
+    ground.receiveShadows = true
+    ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, friction: 0.5, restitution: 0.7 }, this.scene)
 
     const menuBoxes = [
-      { name: 'box1', position: new Vector3(-2, 1, -5), url: 'https://www.google.com/' },
-      { name: 'box2', position: new Vector3(0, 1, -5), url: 'https://www.google.com/' },
-      { name: 'box3', position: new Vector3(2, 1, -5), url: 'https://www.google.com/' },
-      { name: 'box4', position: new Vector3(-2, 3, -5), url: 'https://www.google.com/' },
-      { name: 'box5', position: new Vector3(0, 3, -5), url: 'https://www.google.com/' },
-      { name: 'box6', position: new Vector3(2, 3, -5), url: 'https://www.google.com/' }
+      { name: 'box1', position: new Vector3(-2, 1, -5), url: 'https://www.google.com/', physicsEnabled: true, texture: '../assets/TestCactus1.png' },
+      { name: 'box2', position: new Vector3(0, 1, -5), url: 'https://www.google.com/', physicsEnabled: true, texture: 'assets/TestCactus2.png' },
+      { name: 'box3', position: new Vector3(2, 1, -5), url: 'https://www.google.com/', physicsEnabled: true, texture: 'assets/TestCactus3.png' },
+      { name: 'box4', position: new Vector3(-2, 3, -5), url: 'https://www.google.com/', physicsEnabled: false, texture: 'assets/TestCactus1.png' },
+      { name: 'box5', position: new Vector3(0, 3, -5), url: 'https://www.google.com/', physicsEnabled: false, texture: 'assets/TestCactus2.png' },
+      { name: 'box6', position: new Vector3(2, 3, -5), url: 'https://www.google.com/', physicsEnabled: false, texture: 'assets/TestCactus3.png' }
     ]
 
     menuBoxes.forEach(box => {
@@ -86,9 +95,19 @@ export default class Viewer extends Vue {
 
       mesh.actionManager.registerAction(
         new ExecuteCodeAction(ActionManager.OnPickTrigger, (event) => {
-          this.onMenuBoxClick(event, box.url)
+          this.onMenuBoxClick(mesh, event, box.url)
         })
       )
+
+      if (box.physicsEnabled) {
+        mesh.physicsImpostor = new PhysicsImpostor(mesh, PhysicsImpostor.BoxImpostor, { mass: 3 }, this.scene)
+      }
+
+      const meshMaterial = new StandardMaterial(box.name + '_material', this.scene)
+      meshMaterial.diffuseTexture = new Texture(box.texture, this.scene)
+      mesh.material = meshMaterial
+
+      mesh.updateFacetData()
     })
 
     const target = new Vector3(0, 2, -5)
@@ -111,16 +130,45 @@ export default class Viewer extends Vue {
     })
   }
 
-  private onMenuBoxClick (event: ActionEvent, url: string) {
-    console.log('onclick')
-    window.open(url)
+  private onMenuBoxClick (mesh: Mesh, event: ActionEvent, url: string) {
+    console.log('onMenuBoxClick', event)
+
+    if (!mesh.physicsImpostor) {
+      mesh.physicsImpostor = new PhysicsImpostor(mesh, PhysicsImpostor.BoxImpostor, { mass: 3 }, this.scene)
+    } else {
+      // Select the mesh again using a scene pick because apparently I can't get this info via the event...
+      const pick = this.scene.pick(event.pointerX, event.pointerY)
+      if (pick && pick.getNormal()) {
+        console.log(pick.getNormal())
+
+        const impulseDirection = pick.getNormal()
+        const impulseMagnitude = 5
+        const contactLocalRefPoint = Vector3.Zero()
+
+        mesh.physicsImpostor.applyImpulse(
+          impulseDirection.scale(impulseMagnitude),
+          mesh.getAbsolutePosition().add(contactLocalRefPoint)
+        )
+      }
+    }
+
+    // window.open(url)
   }
 }
 </script>
 
 <style scoped lang="scss">
+.viewer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 canvas {
   width: 100%;
   height: 100%;
+  touch-action: none;
+  outline: none;
+  display: block;
 }
 </style>
