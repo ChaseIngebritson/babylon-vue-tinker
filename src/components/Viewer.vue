@@ -27,8 +27,8 @@ import {
 } from '@babylonjs/core'
 import '@babylonjs/core/Loading/loadingScreen'
 import '@babylonjs/core/Collisions/collisionCoordinator'
-import '@babylonjs/core/Debug/debugLayer'
-import '@babylonjs/inspector'
+// import '@babylonjs/core/Debug/debugLayer'
+// import '@babylonjs/inspector'
 
 // import '@babylonjs/loaders'
 import { SkyMaterial } from '@babylonjs/materials/sky/skyMaterial'
@@ -122,7 +122,7 @@ export default class Viewer extends Vue {
       this.scene.render()
     })
 
-    this.scene.debugLayer.show()
+    // this.scene.debugLayer.show()
 
     this.$emit('ready', this.scene)
   }
