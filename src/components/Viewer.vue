@@ -101,7 +101,7 @@ export default class Viewer extends Vue {
 
       mesh.actionManager.registerAction(
         new ExecuteCodeAction(ActionManager.OnPickTrigger, (event) => {
-          this.onMenuBoxClick(mesh, event, box.url)
+          this.onMenuBoxClick(mesh, event)
         })
       )
 
@@ -139,7 +139,7 @@ export default class Viewer extends Vue {
     })
   }
 
-  private onMenuBoxClick (mesh: Mesh, event: ActionEvent, url: string) {
+  private onMenuBoxClick (mesh: Mesh, event: ActionEvent) {
     if (!mesh.physicsImpostor) return
 
     mesh.physicsImpostor.wakeUp()
