@@ -67,19 +67,15 @@ export default class BusinessCard extends Vue {
     if (qr) this.qr = qr
   }
 
-  async generateQR (text: string) {
-    try {
-      return await QRCode.toDataURL(text, {
-        color: {
-          dark: '#007bff',
-          light: '#ffffff'
-        },
-        margin: 2,
-        scale: 10
-      })
-    } catch (err) {
-      console.error(err)
-    }
+  generateQR (text: string) {
+    return QRCode.toDataURL(text, {
+      color: {
+        dark: '#007bff',
+        light: '#ffffff'
+      },
+      margin: 2,
+      scale: 10
+    })
   }
 }
 </script>
