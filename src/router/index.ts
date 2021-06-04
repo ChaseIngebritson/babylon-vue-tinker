@@ -8,7 +8,9 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home
+    beforeEnter () {
+      window.location.href = process.env.VUE_APP_GITHUB_URL
+    }
   },
   {
     path: '/card',
@@ -17,6 +19,11 @@ const routes = [
     // this generates a separate chunk (about.[hash].js) for this route
     // which is lazy-loaded when the route is visited.
     component: () => import('../views/BusinessCard.vue')
+  },
+  {
+    path: '/3d',
+    name: 'BabylonTest',
+    component: () => import('../views/BabylonTest.vue')
   }
   // {
   //   path: '/about',
