@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import Home from '../views/Home.vue'
+// import Home from '../views/Home.vue'
 
 Vue.use(VueRouter)
 
@@ -9,7 +9,9 @@ const routes = [
     path: '/',
     name: 'Home',
     beforeEnter () {
-      window.location.href = process.env.VUE_APP_GITHUB_URL
+      if (process.env.VUE_APP_GITHUB_URL) {
+        window.location.href = process.env.VUE_APP_GITHUB_URL
+      }
     }
   },
   {
